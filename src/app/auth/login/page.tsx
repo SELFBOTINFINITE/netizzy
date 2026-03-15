@@ -1,4 +1,40 @@
+'use client'
+
+import { useState } from 'react'
+import { createClient } from '@/lib/supabase/client'
+import { useRouter } from 'next/navigation'
+
 export default function LoginPage() {
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const router = useRouter()
+  const supabase = createClient()
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setLoading(true)
+    setError('')
+
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+
+      if (error) throw error
+
+      // Login bem-sucedido
+      router.push('/dashboard')
+      router.refresh() // Força atualização para verificar auth
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <div style={{
       backgroundColor: '#0F0F1A',
@@ -24,7 +60,23 @@ export default function LoginPage() {
           Entrar no Netizzy
         </h1>
 
-        <form>
+        {error && (
+          <div style={{
+            backgroundColor: '#FF4444',
+            color: 'white',
+            padding: '10px',
+            borderRadius: '5px',
+            marginBottom: '20px',
+            textAlign: 'center',
+            fontSize: '14px'
+          }}>
+            {error === 'Invalid login credentials' 
+              ? 'E-mail ou senha incorretos'
+              : error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit}>
           <div style={{ marginBottom: '20px' }}>
             <label style={{
               color: 'white',
@@ -36,7 +88,10 @@ export default function LoginPage() {
             </label>
             <input
               type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               placeholder="seu@email.com"
+              required
               style={{
                 width: '100%',
                 padding: '12px',
@@ -61,7 +116,10 @@ export default function LoginPage() {
             </label>
             <input
               type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
               placeholder="********"
+              required
               style={{
                 width: '100%',
                 padding: '12px',
@@ -93,6 +151,7 @@ export default function LoginPage() {
 
           <button
             type="submit"
+            disabled={loading}
             style={{
               width: '100%',
               padding: '14px',
@@ -102,11 +161,12 @@ export default function LoginPage() {
               borderRadius: '5px',
               fontSize: '16px',
               fontWeight: 'bold',
-              cursor: 'pointer',
+              cursor: loading ? 'not-allowed' : 'pointer',
+              opacity: loading ? 0.5 : 1,
               marginBottom: '20px'
             }}
           >
-            Entrar
+            {loading ? 'Entrando...' : 'Entrar'}
           </button>
         </form>
 

@@ -7,9 +7,6 @@ import { useRouter } from 'next/navigation'
 export default function DashboardPage() {
   const [user, setUser] = useState(null)
   const [profile, setProfile] = useState(null)
-  const [mobileLines, setMobileLines] = useState([])
-  const [address, setAddress] = useState(null)
-  const [bankData, setBankData] = useState(null)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
   const supabase = createClient()
@@ -23,23 +20,14 @@ export default function DashboardPage() {
       }
       setUser(user)
 
-      // Carregar todos os dados do usuário
-      const [
-        { data: profileData },
-        { data: mobileData },
-        { data: addressData },
-        { data: bankData }
-      ] = await Promise.all([
-        supabase.from('profiles').select('*').eq('id', user.id).single(),
-        supabase.from('mobile_lines').select('*').eq('user_id', user.id),
-        supabase.from('addresses').select('*').eq('user_id', user.id).maybeSingle(),
-        supabase.from('bank_data').select('*').eq('user_id', user.id).maybeSingle()
-      ])
+      // Carregar perfil do usuário
+      const { data } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single()
 
-      setProfile(profileData)
-      setMobileLines(mobileData || [])
-      setAddress(addressData)
-      setBankData(bankData)
+      setProfile(data)
       setLoading(false)
     }
     loadData()
@@ -137,18 +125,20 @@ export default function DashboardPage() {
             textAlign: 'center',
             cursor: 'pointer',
             transition: 'transform 0.2s, border 0.2s',
-            border: profile?.whatsapp ? '2px solid #00FF00' : '2px solid transparent'
+            border: '2px solid transparent'
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.transform = 'scale(1.02)'
+            e.currentTarget.style.border = '2px solid #F5B041'
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.transform = 'scale(1)'
+            e.currentTarget.style.border = '2px solid transparent'
           }}>
             <div style={{ fontSize: '40px', marginBottom: '10px' }}>📱</div>
             <h3 style={{ color: '#F5B041' }}>WhatsApp</h3>
             <p style={{ color: '#CCC', fontSize: '14px' }}>
-              {profile?.whatsapp ? '✅ Cadastrado' : '⬜ Pendente'}
+              Cadastre seu número para notificações
             </p>
           </div>
         </a>
@@ -162,18 +152,20 @@ export default function DashboardPage() {
             textAlign: 'center',
             cursor: 'pointer',
             transition: 'transform 0.2s, border 0.2s',
-            border: bankData ? '2px solid #00FF00' : '2px solid transparent'
+            border: '2px solid transparent'
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.transform = 'scale(1.02)'
+            e.currentTarget.style.border = '2px solid #F5B041'
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.transform = 'scale(1)'
+            e.currentTarget.style.border = '2px solid transparent'
           }}>
             <div style={{ fontSize: '40px', marginBottom: '10px' }}>💳</div>
             <h3 style={{ color: '#F5B041' }}>Chave PIX</h3>
             <p style={{ color: '#CCC', fontSize: '14px' }}>
-              {bankData ? '✅ Cadastrado' : '⬜ Pendente'}
+              Cadastre sua chave para receber reembolsos
             </p>
           </div>
         </a>
@@ -187,18 +179,20 @@ export default function DashboardPage() {
             textAlign: 'center',
             cursor: 'pointer',
             transition: 'transform 0.2s, border 0.2s',
-            border: mobileLines.length > 0 ? '2px solid #00FF00' : '2px solid transparent'
+            border: '2px solid transparent'
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.transform = 'scale(1.02)'
+            e.currentTarget.style.border = '2px solid #F5B041'
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.transform = 'scale(1)'
+            e.currentTarget.style.border = '2px solid transparent'
           }}>
             <div style={{ fontSize: '40px', marginBottom: '10px' }}>📞</div>
             <h3 style={{ color: '#F5B041' }}>Linhas Mobile</h3>
             <p style={{ color: '#CCC', fontSize: '14px' }}>
-              {mobileLines.length}/2 cadastradas
+              Cadastre até 2 números de celular
             </p>
           </div>
         </a>
@@ -212,83 +206,23 @@ export default function DashboardPage() {
             textAlign: 'center',
             cursor: 'pointer',
             transition: 'transform 0.2s, border 0.2s',
-            border: address ? '2px solid #00FF00' : '2px solid transparent'
+            border: '2px solid transparent'
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.transform = 'scale(1.02)'
+            e.currentTarget.style.border = '2px solid #F5B041'
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.transform = 'scale(1)'
+            e.currentTarget.style.border = '2px solid transparent'
           }}>
             <div style={{ fontSize: '40px', marginBottom: '10px' }}>🏠</div>
             <h3 style={{ color: '#F5B041' }}>Residencial</h3>
             <p style={{ color: '#CCC', fontSize: '14px' }}>
-              {address ? '✅ Cadastrado' : '⬜ Pendente'}
+              Cadastre seu endereço para internet de casa
             </p>
           </div>
         </a>
-      </div>
-
-      {/* ===== NOVA SEÇÃO DE PLANOS ===== */}
-      <div style={{
-        backgroundColor: '#1A1A2E',
-        padding: '20px',
-        borderRadius: '10px',
-        marginBottom: '30px'
-      }}>
-        <h3 style={{ color: '#F5B041', marginBottom: '15px' }}>
-          📋 Seu Plano
-        </h3>
-        
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-          gap: '15px'
-        }}>
-          <div style={{
-            backgroundColor: '#0F0F1A',
-            padding: '15px',
-            borderRadius: '8px',
-            border: profile?.plan_type === 'mobile' || profile?.plan_type === 'ambos' 
-              ? '2px solid #00FF00' 
-              : '2px solid transparent'
-          }}>
-            <div style={{ fontSize: '32px', marginBottom: '10px' }}>📱</div>
-            <h4 style={{ color: '#F5B041' }}>Plano Mobile</h4>
-            <p style={{ color: '#CCC', fontSize: '14px' }}>
-              {profile?.plan_type === 'mobile' || profile?.plan_type === 'ambos' 
-                ? '✅ Ativo' 
-                : '⬜ Não contratado'}
-            </p>
-            {profile?.plan_type === 'mobile' && (
-              <p style={{ color: '#00FF00', fontSize: '12px' }}>
-                {mobileLines.length}/2 linhas cadastradas
-              </p>
-            )}
-          </div>
-
-          <div style={{
-            backgroundColor: '#0F0F1A',
-            padding: '15px',
-            borderRadius: '8px',
-            border: profile?.plan_type === 'residencial' || profile?.plan_type === 'ambos' 
-              ? '2px solid #00FF00' 
-              : '2px solid transparent'
-          }}>
-            <div style={{ fontSize: '32px', marginBottom: '10px' }}>🏠</div>
-            <h4 style={{ color: '#F5B041' }}>Plano Residencial</h4>
-            <p style={{ color: '#CCC', fontSize: '14px' }}>
-              {profile?.plan_type === 'residencial' || profile?.plan_type === 'ambos' 
-                ? '✅ Ativo' 
-                : '⬜ Não contratado'}
-            </p>
-            {profile?.plan_type === 'residencial' && address && (
-              <p style={{ color: '#00FF00', fontSize: '12px' }}>
-                Endereço cadastrado
-              </p>
-            )}
-          </div>
-        </div>
       </div>
 
       {/* Status do Cadastro */}
@@ -314,9 +248,7 @@ export default function DashboardPage() {
             borderRadius: '5px'
           }}>
             <span>📱 WhatsApp</span>
-            <span style={{ color: profile?.whatsapp ? '#00FF00' : '#FF4444' }}>
-              {profile?.whatsapp ? '✓ Cadastrado' : '✗ Pendente'}
-            </span>
+            <span style={{ color: '#00FF00' }}>✓ Pendente</span>
           </div>
           <div style={{
             display: 'flex',
@@ -327,9 +259,7 @@ export default function DashboardPage() {
             borderRadius: '5px'
           }}>
             <span>💳 Chave PIX</span>
-            <span style={{ color: bankData ? '#00FF00' : '#FF4444' }}>
-              {bankData ? '✓ Cadastrado' : '✗ Pendente'}
-            </span>
+            <span style={{ color: '#00FF00' }}>✓ Pendente</span>
           </div>
           <div style={{
             display: 'flex',
@@ -340,9 +270,7 @@ export default function DashboardPage() {
             borderRadius: '5px'
           }}>
             <span>📞 Linhas Mobile</span>
-            <span style={{ color: mobileLines.length > 0 ? '#00FF00' : '#FF4444' }}>
-              {mobileLines.length}/2 cadastradas
-            </span>
+            <span style={{ color: '#00FF00' }}>✓ 0/2</span>
           </div>
           <div style={{
             display: 'flex',
@@ -353,9 +281,7 @@ export default function DashboardPage() {
             borderRadius: '5px'
           }}>
             <span>🏠 Residencial</span>
-            <span style={{ color: address ? '#00FF00' : '#FF4444' }}>
-              {address ? '✓ Cadastrado' : '✗ Pendente'}
-            </span>
+            <span style={{ color: '#FF4444' }}>✗ Não cadastrado</span>
           </div>
         </div>
       </div>
