@@ -3,8 +3,16 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 
+interface Profile {
+  id: string
+  name: string
+  phone: string
+  plan_type: 'mobile' | 'residencial' | 'ambos' | null
+  created_at: string
+}
+
 export default function AdminPlansPage() {
-  const [users, setUsers] = useState([])
+  const [users, setUsers] = useState<Profile[]>([])
   const [stats, setStats] = useState({
     mobile: 0,
     residencial: 0,
@@ -26,7 +34,7 @@ export default function AdminPlansPage() {
       .order('created_at', { ascending: false })
 
     if (!error && profiles) {
-      setUsers(profiles)
+      setUsers(profiles as Profile[])
       
       // Calcular estatísticas
       const mobile = profiles.filter(p => p.plan_type === 'mobile').length
@@ -43,7 +51,7 @@ export default function AdminPlansPage() {
     setLoading(false)
   }
 
-  const updateUserPlan = async (userId, newPlan) => {
+  const updateUserPlan = async (userId: string, newPlan: string) => {
     const { error } = await supabase
       .from('profiles')
       .update({ plan_type: newPlan })
@@ -54,7 +62,7 @@ export default function AdminPlansPage() {
     }
   }
 
-  const getPlanColor = (plan) => {
+  const getPlanColor = (plan: string | null) => {
     switch(plan) {
       case 'mobile': return '#6B2B8C'
       case 'residencial': return '#F5B041'
