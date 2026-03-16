@@ -4,14 +4,29 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 
+interface User {
+  id: string
+  email?: string
+}
+
+interface MobileLine {
+  id: string
+  user_id: string
+  phone_number: string
+  carrier: string | null
+  monthly_value: number | null
+  status: string
+  created_at: string
+}
+
 export default function MobileLinesPage() {
-  const [lines, setLines] = useState([])
+  const [lines, setLines] = useState<MobileLine[]>([])
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
-  const [user, setUser] = useState(null)
+  const [user, setUser] = useState<User | null>(null)
   const [showForm, setShowForm] = useState(false)
-  const [editingId, setEditingId] = useState(null)
+  const [editingId, setEditingId] = useState<string | null>(null)
   const router = useRouter()
   const supabase = createClient()
 
@@ -36,7 +51,7 @@ export default function MobileLinesPage() {
     loadData()
   }, [])
 
-  const loadLines = async (userId) => {
+  const loadLines = async (userId: string) => {
     const { data, error } = await supabase
       .from('mobile_lines')
       .select('*')
@@ -48,12 +63,12 @@ export default function MobileLinesPage() {
     }
   }
 
-  const handleInputChange = (e) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target
     setFormData(prev => ({ ...prev, [name]: value }))
   }
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setLoading(true)
     setError('')
@@ -68,10 +83,10 @@ export default function MobileLinesPage() {
 
     try {
       const lineData = {
-        user_id: user.id,
+        user_id: user!.id,
         phone_number: formData.phone_number,
-        carrier: formData.carrier,
-        monthly_value: parseFloat(formData.monthly_value),
+        carrier: formData.carrier || null,
+        monthly_value: formData.monthly_value ? parseFloat(formData.monthly_value) : null,
         status: 'ativo'
       }
 
@@ -91,17 +106,17 @@ export default function MobileLinesPage() {
 
       if (error) throw error
 
-      await loadLines(user.id)
+      await loadLines(user!.id)
       setMessage(editingId ? 'Linha atualizada com sucesso!' : 'Linha cadastrada com sucesso!')
       resetForm()
-    } catch (err) {
+    } catch (err: any) {
       setError(err.message)
     } finally {
       setLoading(false)
     }
   }
 
-  const handleEdit = (line) => {
+  const handleEdit = (line: MobileLine) => {
     setFormData({
       phone_number: line.phone_number,
       carrier: line.carrier || '',
@@ -111,7 +126,7 @@ export default function MobileLinesPage() {
     setShowForm(true)
   }
 
-  const handleDelete = async (id) => {
+  const handleDelete = async (id: string) => {
     if (!confirm('Tem certeza que deseja excluir esta linha?')) return
 
     const { error } = await supabase
@@ -120,7 +135,7 @@ export default function MobileLinesPage() {
       .eq('id', id)
 
     if (!error) {
-      await loadLines(user.id)
+      await loadLines(user!.id)
       setMessage('Linha excluída com sucesso!')
     }
   }
