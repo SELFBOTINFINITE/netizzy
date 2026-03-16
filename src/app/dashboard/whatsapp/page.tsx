@@ -4,12 +4,17 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 
+interface User {
+  id: string
+  email?: string
+}
+
 export default function WhatsAppPage() {
   const [whatsapp, setWhatsapp] = useState('')
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
-  const [user, setUser] = useState(null)
+  const [user, setUser] = useState<User | null>(null)
   const router = useRouter()
   const supabase = createClient()
 
@@ -20,7 +25,7 @@ export default function WhatsAppPage() {
       if (!user) {
         router.push('/auth/login')
       } else {
-        setUser(user)
+        setUser(user as User)
         // Carregar WhatsApp já cadastrado
         const { data } = await supabase
           .from('profiles')
@@ -36,7 +41,7 @@ export default function WhatsAppPage() {
     getUser()
   }, [router, supabase])
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setLoading(true)
     setError('')
@@ -46,7 +51,7 @@ export default function WhatsAppPage() {
       const { error } = await supabase
         .from('profiles')
         .update({ whatsapp })
-        .eq('id', user.id)
+        .eq('id', user!.id)
 
       if (error) throw error
 
