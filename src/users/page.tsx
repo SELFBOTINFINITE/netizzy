@@ -3,10 +3,39 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 
+interface Profile {
+  id: string
+  name: string
+  phone: string
+  whatsapp: string | null
+  plan_type: 'mobile' | 'residencial' | 'ambos' | null
+  created_at: string
+}
+
+interface Address {
+  id: string
+  address: string
+  carrier: string | null
+  monthly_value: number | null
+}
+
+interface BankData {
+  id: string
+  pix_type: string
+  pix_key: string
+}
+
+interface UserWithDetails extends Profile {
+  mobile_count: number
+  address: Address | null
+  bank: BankData | null
+  reimbursements_count: number
+}
+
 export default function AdminUsersPage() {
-  const [users, setUsers] = useState([])
+  const [users, setUsers] = useState<UserWithDetails[]>([])
   const [loading, setLoading] = useState(true)
-  const [selectedUser, setSelectedUser] = useState(null)
+  const [selectedUser, setSelectedUser] = useState<UserWithDetails | null>(null)
   const [showDetails, setShowDetails] = useState(false)
   const supabase = createClient()
 
@@ -21,32 +50,32 @@ export default function AdminUsersPage() {
       .select('*')
       .order('created_at', { ascending: false })
 
-    if (!error) {
+    if (!error && profiles) {
       // Para cada perfil, buscar dados adicionais
       const usersWithDetails = await Promise.all(
-        profiles.map(async (profile) => {
+        profiles.map(async (profile: Profile) => {
           const [mobileRes, addressRes, bankRes, reimbursementsRes] = await Promise.all([
-            supabase.from('mobile_lines').select('count').eq('user_id', profile.id).single(),
+            supabase.from('mobile_lines').select('*', { count: 'exact', head: true }).eq('user_id', profile.id),
             supabase.from('addresses').select('*').eq('user_id', profile.id).maybeSingle(),
             supabase.from('bank_data').select('*').eq('user_id', profile.id).maybeSingle(),
-            supabase.from('reimbursements').select('count').eq('user_id', profile.id).single()
+            supabase.from('reimbursements').select('*', { count: 'exact', head: true }).eq('user_id', profile.id)
           ])
 
           return {
             ...profile,
             mobile_count: mobileRes.count || 0,
-            address: addressRes.data,
-            bank: bankRes.data,
+            address: addressRes.data as Address | null,
+            bank: bankRes.data as BankData | null,
             reimbursements_count: reimbursementsRes.count || 0
           }
         })
       )
-      setUsers(usersWithDetails)
+      setUsers(usersWithDetails as UserWithDetails[])
     }
     setLoading(false)
   }
 
-  const getPlanColor = (plan) => {
+  const getPlanColor = (plan: string | null) => {
     switch(plan) {
       case 'mobile': return '#6B2B8C'
       case 'residencial': return '#F5B041'
