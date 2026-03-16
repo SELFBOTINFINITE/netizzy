@@ -12,7 +12,7 @@ export default function LoginPage() {
   const router = useRouter()
   const supabase = createClient()
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setLoading(true)
     setError('')
@@ -28,8 +28,10 @@ export default function LoginPage() {
       // Login bem-sucedido
       router.push('/dashboard')
       router.refresh() // Força atualização para verificar auth
-    } catch (err) {
-      setError(err.message)
+    } catch (err: any) {
+      setError(err.message === 'Invalid login credentials' 
+        ? 'E-mail ou senha incorretos'
+        : err.message)
     } finally {
       setLoading(false)
     }
@@ -70,9 +72,7 @@ export default function LoginPage() {
             textAlign: 'center',
             fontSize: '14px'
           }}>
-            {error === 'Invalid login credentials' 
-              ? 'E-mail ou senha incorretos'
-              : error}
+            {error}
           </div>
         )}
 
