@@ -4,6 +4,20 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 
+interface User {
+  id: string
+  email?: string
+}
+
+interface BankData {
+  id: string
+  user_id: string
+  pix_type: string
+  pix_key: string
+  account_name: string | null
+  created_at: string
+}
+
 export default function PixPage() {
   const [pixType, setPixType] = useState('cpf')
   const [pixKey, setPixKey] = useState('')
@@ -11,8 +25,9 @@ export default function PixPage() {
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
-  const [user, setUser] = useState(null)
+  const [user, setUser] = useState<User | null>(null)
   const [hasPix, setHasPix] = useState(false)
+  const [bankData, setBankData] = useState<BankData | null>(null)
   const router = useRouter()
   const supabase = createClient()
 
@@ -30,7 +45,7 @@ export default function PixPage() {
       if (!user) {
         router.push('/auth/login')
       } else {
-        setUser(user)
+        setUser(user as User)
         // Carregar PIX já cadastrado
         const { data } = await supabase
           .from('bank_data')
@@ -40,6 +55,7 @@ export default function PixPage() {
         
         if (data) {
           setHasPix(true)
+          setBankData(data)
           setPixType(data.pix_type)
           setPixKey(data.pix_key)
           setAccountName(data.account_name || '')
@@ -49,7 +65,7 @@ export default function PixPage() {
     getUser()
   }, [router, supabase])
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setLoading(true)
     setError('')
@@ -57,7 +73,7 @@ export default function PixPage() {
 
     try {
       const pixData = {
-        user_id: user.id,
+        user_id: user!.id,
         pix_type: pixType,
         pix_key: pixKey,
         account_name: accountName || null
@@ -69,7 +85,7 @@ export default function PixPage() {
         ({ error } = await supabase
           .from('bank_data')
           .update(pixData)
-          .eq('user_id', user.id))
+          .eq('user_id', user!.id))
       } else {
         // Inserir novo PIX
         ({ error } = await supabase
