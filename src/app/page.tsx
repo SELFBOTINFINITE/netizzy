@@ -4,12 +4,43 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 
-export default function DashboardPage() {
-  const [user, setUser] = useState(null)
-  const [profile, setProfile] = useState(null)
-  const [mobileLines, setMobileLines] = useState([])
-  const [address, setAddress] = useState(null)
-  const [bankData, setBankData] = useState(null)
+interface User {
+  id: string
+  email?: string
+}
+
+interface Profile {
+  id: string
+  name: string
+  phone: string
+  whatsapp: string | null
+  plan_type: 'mobile' | 'residencial' | 'ambos' | null
+  created_at: string
+}
+
+interface MobileLine {
+  id: string
+  phone_number: string
+  monthly_value: number | null
+}
+
+interface Address {
+  id: string
+  address: string
+}
+
+interface BankData {
+  id: string
+  pix_type: string
+  pix_key: string
+}
+
+export default function Home() {
+  const [user, setUser] = useState<User | null>(null)
+  const [profile, setProfile] = useState<Profile | null>(null)
+  const [mobileLines, setMobileLines] = useState<MobileLine[]>([])
+  const [address, setAddress] = useState<Address | null>(null)
+  const [bankData, setBankData] = useState<BankData | null>(null)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
   const supabase = createClient()
@@ -21,7 +52,7 @@ export default function DashboardPage() {
         router.push('/auth/login')
         return
       }
-      setUser(user)
+      setUser(user as User)
 
       // Carregar todos os dados do usuário
       const [
@@ -36,10 +67,10 @@ export default function DashboardPage() {
         supabase.from('bank_data').select('*').eq('user_id', user.id).maybeSingle()
       ])
 
-      setProfile(profileData)
-      setMobileLines(mobileData || [])
-      setAddress(addressData)
-      setBankData(bankData)
+      setProfile(profileData as Profile)
+      setMobileLines(mobileData as MobileLine[] || [])
+      setAddress(addressData as Address | null)
+      setBankData(bankData as BankData | null)
       setLoading(false)
     }
     loadData()
@@ -139,10 +170,10 @@ export default function DashboardPage() {
             transition: 'transform 0.2s, border 0.2s',
             border: profile?.whatsapp ? '2px solid #00FF00' : '2px solid transparent'
           }}
-          onMouseEnter={(e) => {
+          onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) => {
             e.currentTarget.style.transform = 'scale(1.02)'
           }}
-          onMouseLeave={(e) => {
+          onMouseLeave={(e: React.MouseEvent<HTMLDivElement>) => {
             e.currentTarget.style.transform = 'scale(1)'
           }}>
             <div style={{ fontSize: '40px', marginBottom: '10px' }}>📱</div>
@@ -164,10 +195,10 @@ export default function DashboardPage() {
             transition: 'transform 0.2s, border 0.2s',
             border: bankData ? '2px solid #00FF00' : '2px solid transparent'
           }}
-          onMouseEnter={(e) => {
+          onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) => {
             e.currentTarget.style.transform = 'scale(1.02)'
           }}
-          onMouseLeave={(e) => {
+          onMouseLeave={(e: React.MouseEvent<HTMLDivElement>) => {
             e.currentTarget.style.transform = 'scale(1)'
           }}>
             <div style={{ fontSize: '40px', marginBottom: '10px' }}>💳</div>
@@ -189,10 +220,10 @@ export default function DashboardPage() {
             transition: 'transform 0.2s, border 0.2s',
             border: mobileLines.length > 0 ? '2px solid #00FF00' : '2px solid transparent'
           }}
-          onMouseEnter={(e) => {
+          onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) => {
             e.currentTarget.style.transform = 'scale(1.02)'
           }}
-          onMouseLeave={(e) => {
+          onMouseLeave={(e: React.MouseEvent<HTMLDivElement>) => {
             e.currentTarget.style.transform = 'scale(1)'
           }}>
             <div style={{ fontSize: '40px', marginBottom: '10px' }}>📞</div>
@@ -214,10 +245,10 @@ export default function DashboardPage() {
             transition: 'transform 0.2s, border 0.2s',
             border: address ? '2px solid #00FF00' : '2px solid transparent'
           }}
-          onMouseEnter={(e) => {
+          onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) => {
             e.currentTarget.style.transform = 'scale(1.02)'
           }}
-          onMouseLeave={(e) => {
+          onMouseLeave={(e: React.MouseEvent<HTMLDivElement>) => {
             e.currentTarget.style.transform = 'scale(1)'
           }}>
             <div style={{ fontSize: '40px', marginBottom: '10px' }}>🏠</div>
@@ -227,68 +258,6 @@ export default function DashboardPage() {
             </p>
           </div>
         </a>
-      </div>
-
-      {/* ===== NOVA SEÇÃO DE PLANOS ===== */}
-      <div style={{
-        backgroundColor: '#1A1A2E',
-        padding: '20px',
-        borderRadius: '10px',
-        marginBottom: '30px'
-      }}>
-        <h3 style={{ color: '#F5B041', marginBottom: '15px' }}>
-          📋 Seu Plano
-        </h3>
-        
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-          gap: '15px'
-        }}>
-          <div style={{
-            backgroundColor: '#0F0F1A',
-            padding: '15px',
-            borderRadius: '8px',
-            border: profile?.plan_type === 'mobile' || profile?.plan_type === 'ambos' 
-              ? '2px solid #00FF00' 
-              : '2px solid transparent'
-          }}>
-            <div style={{ fontSize: '32px', marginBottom: '10px' }}>📱</div>
-            <h4 style={{ color: '#F5B041' }}>Plano Mobile</h4>
-            <p style={{ color: '#CCC', fontSize: '14px' }}>
-              {profile?.plan_type === 'mobile' || profile?.plan_type === 'ambos' 
-                ? '✅ Ativo' 
-                : '⬜ Não contratado'}
-            </p>
-            {profile?.plan_type === 'mobile' && (
-              <p style={{ color: '#00FF00', fontSize: '12px' }}>
-                {mobileLines.length}/2 linhas cadastradas
-              </p>
-            )}
-          </div>
-
-          <div style={{
-            backgroundColor: '#0F0F1A',
-            padding: '15px',
-            borderRadius: '8px',
-            border: profile?.plan_type === 'residencial' || profile?.plan_type === 'ambos' 
-              ? '2px solid #00FF00' 
-              : '2px solid transparent'
-          }}>
-            <div style={{ fontSize: '32px', marginBottom: '10px' }}>🏠</div>
-            <h4 style={{ color: '#F5B041' }}>Plano Residencial</h4>
-            <p style={{ color: '#CCC', fontSize: '14px' }}>
-              {profile?.plan_type === 'residencial' || profile?.plan_type === 'ambos' 
-                ? '✅ Ativo' 
-                : '⬜ Não contratado'}
-            </p>
-            {profile?.plan_type === 'residencial' && address && (
-              <p style={{ color: '#00FF00', fontSize: '12px' }}>
-                Endereço cadastrado
-              </p>
-            )}
-          </div>
-        </div>
       </div>
 
       {/* Status do Cadastro */}
