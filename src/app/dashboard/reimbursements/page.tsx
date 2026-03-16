@@ -4,11 +4,46 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 
+interface User {
+  id: string
+  email?: string
+}
+
+interface Profile {
+  name: string
+  phone: string
+  plan_type: string
+}
+
+interface Reimbursement {
+  id: string
+  user_id: string
+  source_type: 'mobile' | 'residencial'
+  source_id: string | null
+  value: number
+  status: 'pendente' | 'aprovado' | 'rejeitado' | 'pago'
+  receipt_url: string | null
+  created_at: string
+  approved_at: string | null
+  profiles?: Profile
+}
+
+interface MobileLine {
+  id: string
+  phone_number: string
+  monthly_value: number | null
+}
+
+interface Address {
+  id: string
+  address: string
+}
+
 export default function ReimbursementsPage() {
-  const [reimbursements, setReimbursements] = useState([])
-  const [mobileLines, setMobileLines] = useState([])
-  const [address, setAddress] = useState(null)
-  const [profile, setProfile] = useState(null)
+  const [reimbursements, setReimbursements] = useState<Reimbursement[]>([])
+  const [mobileLines, setMobileLines] = useState<MobileLine[]>([])
+  const [address, setAddress] = useState<Address | null>(null)
+  const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
   const [showForm, setShowForm] = useState(false)
@@ -17,7 +52,8 @@ export default function ReimbursementsPage() {
     source_id: '',
     value: ''
   })
-  const [selectedFile, setSelectedFile] = useState(null)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [user, setUser] = useState<User | null>(null)
   const router = useRouter()
   const supabase = createClient()
 
@@ -31,6 +67,7 @@ export default function ReimbursementsPage() {
       router.push('/auth/login')
       return
     }
+    setUser(user as User)
 
     // Carregar reembolsos e dados do usuário
     const [reimbursementsRes, mobileRes, addressRes, profileRes] = await Promise.all([
@@ -40,20 +77,20 @@ export default function ReimbursementsPage() {
       supabase.from('profiles').select('*').eq('id', user.id).single()
     ])
 
-    setReimbursements(reimbursementsRes.data || [])
-    setMobileLines(mobileRes.data || [])
-    setAddress(addressRes.data)
-    setProfile(profileRes.data)
+    setReimbursements(reimbursementsRes.data as Reimbursement[] || [])
+    setMobileLines(mobileRes.data as MobileLine[] || [])
+    setAddress(addressRes.data as Address | null)
+    setProfile(profileRes.data as Profile)
     setLoading(false)
   }
 
-  const handleFileChange = (e) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setSelectedFile(e.target.files[0])
     }
   }
 
-  const uploadFile = async (userId) => {
+  const uploadFile = async (userId: string) => {
     if (!selectedFile) return null
 
     setUploading(true)
@@ -68,7 +105,6 @@ export default function ReimbursementsPage() {
 
       if (uploadError) throw uploadError
 
-      // Obter URL pública do arquivo
       const { data: { publicUrl } } = supabase.storage
         .from('receipts')
         .getPublicUrl(filePath)
@@ -83,12 +119,11 @@ export default function ReimbursementsPage() {
     }
   }
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setLoading(true)
 
     try {
-      // Validar se o usuário tem direito ao reembolso baseado no plano
       if (formData.source_type === 'mobile' && profile?.plan_type === 'residencial') {
         alert('Seu plano não inclui reembolsos mobile')
         setLoading(false)
@@ -100,21 +135,19 @@ export default function ReimbursementsPage() {
         return
       }
 
-      const user = (await supabase.auth.getUser()).data.user
+      const userObj = (await supabase.auth.getUser()).data.user
       
-      // Fazer upload do arquivo primeiro
       let receiptUrl = null
       if (selectedFile) {
-        receiptUrl = await uploadFile(user.id)
+        receiptUrl = await uploadFile(userObj!.id)
         if (!receiptUrl) {
           setLoading(false)
           return
         }
       }
 
-      // Inserir reembolso com a URL do comprovante
       const { error } = await supabase.from('reimbursements').insert({
-        user_id: user.id,
+        user_id: userObj!.id,
         source_type: formData.source_type,
         source_id: formData.source_id || null,
         value: parseFloat(formData.value),
@@ -135,7 +168,7 @@ export default function ReimbursementsPage() {
     }
   }
 
-  const getStatusColor = (status) => {
+  const getStatusColor = (status: string) => {
     switch(status) {
       case 'aprovado': return '#00FF00'
       case 'rejeitado': return '#FF4444'
@@ -184,7 +217,6 @@ export default function ReimbursementsPage() {
           </button>
         </div>
 
-        {/* Lista de reembolsos */}
         {reimbursements.length === 0 ? (
           <div style={{
             backgroundColor: '#1A1A2E',
@@ -239,7 +271,6 @@ export default function ReimbursementsPage() {
           </div>
         )}
 
-        {/* Formulário de solicitação */}
         {showForm && (
           <div style={{
             backgroundColor: '#1A1A2E',
@@ -258,7 +289,7 @@ export default function ReimbursementsPage() {
                 </label>
                 <select
                   value={formData.source_type}
-                  onChange={(e) => setFormData({ ...formData, source_type: e.target.value, source_id: '' })}
+                  onChange={(e) => setFormData({ ...formData, source_type: e.target.value as 'mobile' | 'residencial', source_id: '' })}
                   style={{
                     width: '100%',
                     padding: '12px',
@@ -318,7 +349,6 @@ export default function ReimbursementsPage() {
                   <input
                     type="hidden"
                     value={address.id}
-                    onChange={(e) => setFormData({ ...formData, source_id: address.id })}
                   />
                 </div>
               )}
