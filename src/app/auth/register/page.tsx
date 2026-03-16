@@ -16,7 +16,7 @@ export default function RegisterPage() {
   const router = useRouter()
   const supabase = createClient()
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setLoading(true)
     setError('')
@@ -56,12 +56,12 @@ export default function RegisterPage() {
         setPassword('')
         setConfirmPassword('')
         
-        // Opcional: redirecionar após alguns segundos
+        // Redirecionar após alguns segundos
         setTimeout(() => {
           router.push('/auth/login')
         }, 3000)
       }
-    } catch (err) {
+    } catch (err: any) {
       setError(err.message)
     } finally {
       setLoading(false)
