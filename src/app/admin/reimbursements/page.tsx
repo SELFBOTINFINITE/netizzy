@@ -3,10 +3,27 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 
+interface Reimbursement {
+  id: string
+  user_id: string
+  source_type: 'mobile' | 'residencial'
+  source_id: string | null
+  value: number
+  status: 'pendente' | 'aprovado' | 'rejeitado' | 'pago'
+  receipt_url: string | null
+  created_at: string
+  approved_at: string | null
+  profiles?: {
+    name: string
+    phone: string
+    plan_type: string
+  }
+}
+
 export default function AdminReimbursementsPage() {
-  const [reimbursements, setReimbursements] = useState([])
+  const [reimbursements, setReimbursements] = useState<Reimbursement[]>([])
   const [loading, setLoading] = useState(true)
-  const [selectedReimbursement, setSelectedReimbursement] = useState(null)
+  const [selectedReimbursement, setSelectedReimbursement] = useState<Reimbursement | null>(null)
   const [showDetails, setShowDetails] = useState(false)
   const [filter, setFilter] = useState('todos')
   const supabase = createClient()
@@ -30,12 +47,12 @@ export default function AdminReimbursementsPage() {
       .order('created_at', { ascending: false })
 
     if (!error) {
-      setReimbursements(data || [])
+      setReimbursements(data as Reimbursement[] || [])
     }
     setLoading(false)
   }
 
-  const updateStatus = async (id, newStatus) => {
+  const updateStatus = async (id: string, newStatus: string) => {
     const { error } = await supabase
       .from('reimbursements')
       .update({ 
@@ -50,7 +67,7 @@ export default function AdminReimbursementsPage() {
     }
   }
 
-  const getStatusColor = (status) => {
+  const getStatusColor = (status: string) => {
     switch(status) {
       case 'aprovado': return '#00FF00'
       case 'rejeitado': return '#FF4444'
